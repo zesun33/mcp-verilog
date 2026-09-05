@@ -6,7 +6,7 @@
 [![Protocol: MCP](https://img.shields.io/badge/protocol-MCP_stdio-blueviolet)](https://modelcontextprotocol.io)
 [![Runtime: Rootless Podman](https://img.shields.io/badge/runtime-rootless_podman-brightgreen)](#execution-runtime)
 
-`mcp-verilog` provides structured, token-efficient tool APIs so AI coding agents (Claude Code, Cursor, Antigravity, OpenCode) can lint, syntax-check, and simulate Verilog designs in closed-loop workflows without blowing context windows on unstructured compiler output.
+`mcp-verilog` provides structured, token-efficient tool APIs so AI coding agents and IDEs (**Cursor**, **Windsurf**, **GitHub Copilot / OpenAI Codex**, **Claude Code**, **Google Antigravity**, **OpenCode**, **Cline**) can lint, syntax-check, and simulate Verilog designs in closed-loop workflows without blowing context windows on unstructured compiler output.
 
 ---
 
@@ -93,10 +93,19 @@ export MCP_VERILOG_RUNTIME=host
 
 ---
 
-## Client Setup
+## Universal Client & AI IDE Setup
 
-### 1. Cursor / Antigravity IDE
-Add to your project's `.cursor/mcp.json` or global configuration:
+Because `mcp-verilog` implements the standard [Model Context Protocol (MCP)](https://modelcontextprotocol.io), it connects seamlessly to any MCP-compliant AI IDE or agent interface:
+
+| Environment | Supported Tools | Setup Location |
+| :--- | :--- | :--- |
+| **AI IDEs** | Cursor, Windsurf, Google Antigravity, Zed | `.cursor/mcp.json` or `.windsurf/mcp.json` |
+| **Extensions** | GitHub Copilot / OpenAI Codex, Cline, Roo Code | VS Code MCP extension settings |
+| **CLI Agents** | Claude Code, OpenCode, Goose, Antigravity CLI (`agy`) | Global MCP configuration or CLI flags |
+| **Desktop** | Claude Desktop | `claude_desktop_config.json` |
+
+### 1. Cursor / Windsurf / Antigravity IDE
+Add to your project's `.cursor/mcp.json` or `.windsurf/mcp.json`:
 ```json
 {
   "mcpServers": {
@@ -108,7 +117,20 @@ Add to your project's `.cursor/mcp.json` or global configuration:
 }
 ```
 
-### 2. Claude Desktop
+### 2. VS Code (GitHub Copilot / OpenAI Codex / Cline)
+Add to your VS Code MCP settings or user settings:
+```json
+{
+  "mcpServers": {
+    "verilog": {
+      "command": "node",
+      "args": ["/data/mxm6982/projects/personal-projects/mcp-verilog/dist/index.js"]
+    }
+  }
+}
+```
+
+### 3. Claude Desktop & Claude Code
 Add to `claude_desktop_config.json`:
 ```json
 {
