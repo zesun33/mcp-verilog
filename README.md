@@ -10,6 +10,65 @@
 
 ---
 
+## ⚡ Quick Tour: See It in Action
+
+### Why AI Agents Need `mcp-verilog`
+| Without `mcp-verilog` (Raw Shell) | With `mcp-verilog` (Structured MCP) |
+| :--- | :--- |
+| Dumps 5,000 lines of raw compiler output into context | Returns **< 100 tokens** of clean JSON |
+| Agent hallucinates line numbers and syntax bugs | Direct file/line jump: `"line": 9, "severity": "error"` |
+| Broken `while(1)` simulation hangs the agent/IDE | **Timeout kill-switch** (`timedOut: true`) |
+| Requires manual host install of 5+ C++ EDA packages | **Zero host install** (isolated rootless Podman) |
+
+### Real Agent Scenarios in 60 Seconds
+
+#### 1. Probing the Toolchain (Zero-Config Verification)
+```json
+// Tool Call: verilog_toolchain_info
+{
+  "runtime": "podman",
+  "tools": [
+    { "name": "iverilog", "available": true, "version": "Icarus Verilog version 12.0 (stable)" },
+    { "name": "verilator", "available": true, "version": "Verilator 5.020" },
+    { "name": "verible-verilog-lint", "available": true, "version": "v0.0-4080-ga0a8d8eb" },
+    { "name": "sv2v", "available": true, "version": "v0.0.13" }
+  ]
+}
+```
+
+#### 2. Pinpoint Syntax Diagnostics (1-Shot Repair)
+```json
+// Tool Call: verilog_lint {"files": ["syntax_error.v"]}
+{
+  "success": false,
+  "diagnostics": [
+    { "file": "syntax_error.v", "line": 9, "severity": "error", "message": "syntax error at token 'end'" }
+  ]
+}
+```
+
+#### 3. Closed-Loop Testbench Simulation (318ms)
+```json
+// Tool Call: verilog_simulate {"files": ["counter.v", "counter_tb.v"], "top_module": "counter_tb"}
+{
+  "success": true,
+  "exitCode": 0,
+  "stdout": "PASS: Counter testbench completed successfully with count=5\n"
+}
+```
+
+#### 4. Instant Assertion Triage (Catches Failures Safely)
+```json
+// Tool Call: verilog_simulate {"files": ["failing_tb.v"], "top_module": "failing_tb"}
+{
+  "success": false,
+  "exitCode": 1,
+  "errors": ["FATAL: failing_tb.v:11: SIMULATION_ASSERTION_FAILED: Test intentional failure."]
+}
+```
+
+---
+
 ## Tools Exposed
 
 | Tool | Parameters | Engine | Description |
