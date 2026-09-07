@@ -16,7 +16,7 @@
 ### Why AI Agents Need `mcp-verilog`
 | Without `mcp-verilog` (Raw Shell) | With `mcp-verilog` (Structured MCP) |
 | :--- | :--- |
-| Dumps 5,000 lines of raw compiler output into context | Returns **< 100 tokens** of clean JSON |
+| Dumps 5,000 lines of raw compiler output into context | Returns **`< 100 tokens`** of clean JSON |
 | Agent hallucinates line numbers and syntax bugs | Direct file/line jump: `"line": 9, "severity": "error"` |
 | Broken `while(1)` simulation hangs the agent/IDE | **Timeout kill-switch** (`timedOut: true`) |
 | Requires manual host install of 5+ C++ EDA packages | **Zero host install** (isolated rootless Podman) |
@@ -121,7 +121,16 @@
 
 ## Execution Runtime
 
-`mcp-verilog` automatically prioritizes running tools inside the [`zesun33/verilog`](https://github.com/zesun33/eda-docker-images) rootless Podman image (`localhost/zesun33/verilog`), ensuring tools run identically across any Linux host without polluting the host environment:
+`mcp-verilog` runs inside the [`zesun33/verilog`](https://github.com/zesun33/eda-docker-images) rootless Podman image so tools are identical on any Linux host.
+
+**Public install (recommended — anyone can pull):**
+```bash
+podman pull ghcr.io/zesun33/verilog:latest
+export MCP_VERILOG_IMAGE=ghcr.io/zesun33/verilog
+```
+
+Local builds from `eda-docker-images` still work as `localhost/zesun33/verilog` (the historical default). Override anytime with `MCP_VERILOG_IMAGE`.
+
 - Container mount: `-v <workspace>:/workspace:Z -w /workspace`
 - Podman storage option: `--storage-opt overlay.ignore_chown_errors=true`
 
@@ -129,6 +138,7 @@ To force host binaries instead of container execution:
 ```bash
 export MCP_VERILOG_RUNTIME=host
 ```
+
 
 ---
 
@@ -150,7 +160,7 @@ Add to your project's `.cursor/mcp.json` or `.windsurf/mcp.json`:
   "mcpServers": {
     "verilog": {
       "command": "node",
-      "args": ["/data/mxm6982/projects/personal-projects/mcp-verilog/dist/index.js"]
+      "args": ["/path/to/personal-projects/mcp-verilog/dist/index.js"]
     }
   }
 }
@@ -163,7 +173,7 @@ Add to your VS Code MCP settings or user settings:
   "mcpServers": {
     "verilog": {
       "command": "node",
-      "args": ["/data/mxm6982/projects/personal-projects/mcp-verilog/dist/index.js"]
+      "args": ["/path/to/personal-projects/mcp-verilog/dist/index.js"]
     }
   }
 }
