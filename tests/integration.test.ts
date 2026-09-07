@@ -1,10 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as path from "node:path";
+import * as fs from "node:fs";
 import { ToolRunner } from "../src/runner.js";
 import { runLint } from "../src/tools/lint.js";
 import { runCompile } from "../src/tools/compile.js";
 import { runSimulate } from "../src/tools/simulate.js";
+import { runWaveSummary } from "../src/tools/wave.js";
+import { runCoverage } from "../src/tools/coverage.js";
+import { runGenerateTestbench } from "../src/tools/generate_tb.js";
 import { getToolchainInfo } from "../src/tools/toolchain.js";
 
 const runner = new ToolRunner();
@@ -72,4 +76,88 @@ test("Integration: verilog_simulate catches fatal assertion failure", async () =
   assert.equal(res.success, false);
   assert.ok(res.errors.length > 0, "Should capture fatal error");
   assert.ok(res.errors.some((e) => e.includes("fatal") || e.includes("ASSERTION_FAILED")));
+});
+
+test("Integration: verilog_wave_summary summarizes VCD from wave demo", async () => {
+  const simRes = await runSimulate(
+    runner,
+    ["fixtures/counter.v", "fixtures/wave_demo_tb.v"],
+    "wave_demo_tb",
+    10000,
+    true,
+    process.cwd()
+  );
+  assert.equal(simRes.success, true, `Wave demo simulation failed: ${simRes.stderr}`);
+
+  const summary = await runWaveSummary("waves.vcd", 30, process.cwd());
+  assert.equal(summary.success, true, `Wave summary failed: ${summary.errors.join("; ")}`);
+  assert.ok(summary.signalCount > 0, "Should discover dumped signals");
+  assert.match(summary.timescale, /1ps/); // iverilog VCD timescale = precision from `timescale 1ns/1ps
+  const clk = summary.signals.find((s) => s.name.endsWith("clk"));
+  assert.ok(clk, "Should include clock signal");
+  assert.ok(clk.transitions > 0, "Clock should toggle");
+
+  await fs.promises.rm(path.join(process.cwd(), "waves.vcd"), { force: true });
+  await fs.promises.rm(path.join(process.cwd(), "build_sim.vvp"), { force: true });
+});
+
+test("Integration: verilog_wave_summary rejects missing VCD", async () => {
+  const summary = await runWaveSummary("does-not-exist.vcd", 30, process.cwd());
+  assert.equal(summary.success, false);
+  assert.ok(summary.errors.length > 0);
+});
+
+test("Integration: verilog_coverage measures wave demo testbench", async () => {
+  const res = await runCoverage(
+    runner,
+    ["fixtures/counter.v", "fixtures/wave_demo_tb.v"],
+    "wave_demo_tb",
+    process.cwd(),
+    240000
+  );
+  assert.equal(res.success, true, `Coverage failed: ${res.errors.join("; ")}`);
+  assert.ok(res.linesTotal > 0, "Should report coverable lines");
+  assert.ok(res.linesCovered > 0, "Wave demo should cover design lines");
+  assert.ok(res.files.some((f) => f.file.endsWith("counter.v")));
+});
+
+test("Integration: verilog_coverage rejects invalid top module", async () => {
+  const res = await runCoverage(runner, ["fixtures/counter.v"], "not a module!", process.cwd());
+  assert.equal(res.success, false);
+  assert.ok(res.errors.length > 0);
+});
+
+test("Integration: verilog_generate_tb round-trips through simulation", async () => {
+  const gen = await runGenerateTestbench(
+    ["fixtures/counter.v"],
+    "counter",
+    10,
+    "gen_counter_tb.v",
+    process.cwd()
+  );
+  assert.equal(gen.success, true, `TB gen failed: ${gen.errors.join("; ")}`);
+  assert.equal(gen.testbenchModule, "counter_tb");
+  assert.equal(gen.clockPort, "clk");
+  assert.equal(gen.resetPort, "rst");
+
+  const simRes = await runSimulate(
+    runner,
+    ["fixtures/counter.v", "gen_counter_tb.v"],
+    "counter_tb",
+    10000,
+    false,
+    process.cwd()
+  );
+  assert.equal(simRes.success, true, `Generated TB simulation failed: ${simRes.stderr}`);
+  assert.ok(simRes.stdout.includes("PASS: counter smoke test completed"));
+
+  await fs.promises.rm(path.join(process.cwd(), "gen_counter_tb.v"), { force: true });
+  await fs.promises.rm(path.join(process.cwd(), "counter_tb.vcd"), { force: true });
+  await fs.promises.rm(path.join(process.cwd(), "build_sim.vvp"), { force: true });
+});
+
+test("Integration: verilog_generate_tb rejects unknown module", async () => {
+  const gen = await runGenerateTestbench(["fixtures/counter.v"], "nope_missing", 10, undefined, process.cwd());
+  assert.equal(gen.success, false);
+  assert.ok(gen.errors.length > 0);
 });

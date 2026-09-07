@@ -68,6 +68,41 @@
 }
 ```
 
+#### 5. Waveform Summary Without a GUI (Token-Capped Toggles)
+```json
+// Tool Call: verilog_wave_summary {"vcd_file": "waves.vcd"}
+{
+  "success": true,
+  "timescale": "1ps",
+  "signalCount": 12,
+  "signals": [
+    { "name": "wave_demo_tb.clk", "width": 1, "transitions": 28, "toggled": true }
+  ]
+}
+```
+
+#### 6. Line Coverage via Verilator (Honest Uncovered Lines)
+```json
+// Tool Call: verilog_coverage {"files": ["counter.v", "wave_demo_tb.v"], "top_module": "wave_demo_tb"}
+{
+  "success": true,
+  "linesTotal": 24,
+  "linesCovered": 21,
+  "coveragePct": 87.5
+}
+```
+
+#### 7. Testbench Skeleton in One Call (1-Shot Harness)
+```json
+// Tool Call: verilog_generate_tb {"files": ["counter.v"], "top_module": "counter"}
+{
+  "success": true,
+  "testbenchModule": "counter_tb",
+  "clockPort": "clk",
+  "resetPort": "rst"
+}
+```
+
 ---
 
 ## Tools Exposed
@@ -77,6 +112,9 @@
 | `verilog_lint` | `files: string[]`, `ruleset?: string`, `cwd?: string` | `verible-verilog-lint` | Analyzes code style and syntax, returning structured line, column, severity, and rule diagnostics. |
 | `verilog_compile` | `files: string[]`, `top_module?: string`, `compiler?: "iverilog" \| "verilator"`, `cwd?: string` | `iverilog` / `verilator` | Elaboration and syntax checking without running a full simulation. |
 | `verilog_simulate` | `files: string[]`, `top_module?: string`, `timeout_ms?: number`, `dump_waves?: boolean`, `cwd?: string` | `iverilog` + `vvp` | Compiles and executes a behavioral testbench, capturing runtime `$fatal` assertions, errors, and timing out runaway loops. |
+| `verilog_wave_summary` | `vcd_file: string`, `max_signals?: number`, `cwd?: string` | VCD parser | Summarizes a VCD file as per-signal toggle counts, time range, and timescale (no GUI needed). |
+| `verilog_coverage` | `files: string[]`, `top_module: string`, `timeout_ms?: number`, `cwd?: string` | `verilator --coverage` + `verilator_coverage` | Builds the `$finish`-terminated testbench with Verilator coverage and reports per-file covered/total lines plus uncovered line numbers. |
+| `verilog_generate_tb` | `files: string[]`, `top_module: string`, `cycles?: number`, `output_file?: string`, `cwd?: string` | Port parser | Generates a clock/reset harness testbench skeleton with DUT instantiation, VCD dump, and a TODO for assertions. |
 | `verilog_toolchain_info` | *none* | Probe | Returns the active runtime (`podman`, `docker`, `host`) and installed toolchain versions. |
 
 ---

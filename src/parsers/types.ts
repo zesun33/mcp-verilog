@@ -33,6 +33,36 @@ export interface SimulationResult {
   errors: string[];
 }
 
+export interface WaveSignalSummary {
+  name: string;
+  width: number;
+  transitions: number;
+  toggled: boolean;
+}
+
+export interface WaveSummaryResult {
+  success: boolean;
+  vcdFile: string;
+  timescale: string;
+  timeStart: number;
+  timeEnd: number;
+  signalCount: number;
+  signals: WaveSignalSummary[];
+  truncated: boolean;
+  errors: string[];
+}
+
+export interface CoverageResult {
+  success: boolean;
+  topModule: string;
+  linesTotal: number;
+  linesCovered: number;
+  coveragePct: number;
+  files: import("./coverage.js").CoverageFileStat[];
+  simErrors: string[];
+  errors: string[];
+}
+
 export interface ToolchainVersion {
   name: string;
   version: string;

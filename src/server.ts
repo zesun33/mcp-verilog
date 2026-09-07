@@ -8,13 +8,16 @@ import { ToolRunner } from "./runner.js";
 import { runLint } from "./tools/lint.js";
 import { runCompile } from "./tools/compile.js";
 import { runSimulate } from "./tools/simulate.js";
+import { runWaveSummary } from "./tools/wave.js";
+import { runCoverage } from "./tools/coverage.js";
+import { runGenerateTestbench } from "./tools/generate_tb.js";
 import { getToolchainInfo } from "./tools/toolchain.js";
 
 export function createServer(runner: ToolRunner = new ToolRunner()): Server {
   const server = new Server(
     {
       name: "mcp-verilog",
-      version: "0.1.0",
+      version: "0.2.0",
     },
     {
       capabilities: {
@@ -110,6 +113,89 @@ export function createServer(runner: ToolRunner = new ToolRunner()): Server {
       },
     },
     {
+      name: "verilog_wave_summary",
+      description:
+        "Summarizes a VCD waveform file (from iverilog $dumpfile/$dumpvars runs) as token-capped per-signal toggle counts, time range, and timescale. No GUI needed.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          vcd_file: {
+            type: "string",
+            description: "Path to the VCD file to summarize (relative to cwd or absolute).",
+          },
+          max_signals: {
+            type: "number",
+            description: "Maximum signals to return, most-active first (default: 30).",
+          },
+          cwd: {
+            type: "string",
+            description: "Optional working directory.",
+          },
+        },
+        required: ["vcd_file"],
+      },
+    },
+    {
+      name: "verilog_coverage",
+      description:
+        "Measures Verilog line coverage by building the testbench with Verilator --coverage and running it, then reporting per-file covered/total lines and uncovered line numbers. Testbench must $finish.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          files: {
+            type: "array",
+            items: { type: "string" },
+            description: "List of Verilog source files including the design and testbench.",
+          },
+          top_module: {
+            type: "string",
+            description: "Name of the top-level testbench module (must terminate with $finish).",
+          },
+          timeout_ms: {
+            type: "number",
+            description: "Maximum build+run time in milliseconds (default: 180000).",
+          },
+          cwd: {
+            type: "string",
+            description: "Optional working directory.",
+          },
+        },
+        required: ["files", "top_module"],
+      },
+    },
+    {
+      name: "verilog_generate_tb",
+      description:
+        "Generates a testbench skeleton (clock/reset harness, DUT instantiation, VCD dump, PASS/$finish) from a Verilog module's port list, with a TODO for design-specific assertions.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          files: {
+            type: "array",
+            items: { type: "string" },
+            description: "Verilog source files; the file containing top_module is parsed for ports.",
+          },
+          top_module: {
+            type: "string",
+            description: "Name of the design module to generate a testbench for.",
+          },
+          cycles: {
+            type: "number",
+            description: "Simulation run length in clock periods before $finish (default: 20).",
+          },
+          output_file: {
+            type: "string",
+            description: "Optional path to write the generated testbench to.",
+          },
+          cwd: {
+            type: "string",
+            description: "Optional working directory.",
+          },
+        },
+        required: ["files", "top_module"],
+      },
+    },
+    {
       name: "verilog_toolchain_info",
       description:
         "Returns active container or host execution runtime info and versions of iverilog, verilator, verible, and sv2v.",
@@ -167,6 +253,54 @@ export function createServer(runner: ToolRunner = new ToolRunner()): Server {
           const dumpWaves = Boolean(args.dump_waves);
           const cwd = args.cwd as string | undefined;
           const result = await runSimulate(runner, files, topModule, timeoutMs, dumpWaves, cwd);
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        }
+
+        case "verilog_wave_summary": {
+          const vcdFile = (args.vcd_file as string) || "";
+          const maxSignals = typeof args.max_signals === "number" ? args.max_signals : 30;
+          const cwd = args.cwd as string | undefined;
+          const result = await runWaveSummary(vcdFile, maxSignals, cwd);
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        }
+
+        case "verilog_coverage": {
+          const files = (args.files as string[]) || [];
+          const topModule = (args.top_module as string) || "";
+          const timeoutMs = typeof args.timeout_ms === "number" ? args.timeout_ms : 180000;
+          const cwd = args.cwd as string | undefined;
+          const result = await runCoverage(runner, files, topModule, cwd, timeoutMs);
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        }
+
+        case "verilog_generate_tb": {
+          const files = (args.files as string[]) || [];
+          const topModule = (args.top_module as string) || "";
+          const cycles = typeof args.cycles === "number" ? args.cycles : 20;
+          const outputFile = args.output_file as string | undefined;
+          const cwd = args.cwd as string | undefined;
+          const result = await runGenerateTestbench(files, topModule, cycles, outputFile, cwd);
           return {
             content: [
               {

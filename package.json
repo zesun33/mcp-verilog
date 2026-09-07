@@ -1,6 +1,6 @@
 {
   "name": "@zesun33/mcp-verilog",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Model Context Protocol (MCP) server for Verilog and SystemVerilog development",
   "type": "module",
   "bin": {

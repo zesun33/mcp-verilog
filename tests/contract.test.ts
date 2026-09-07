@@ -17,6 +17,9 @@ test("MCP server registers required Verilog tools", async () => {
   assert.ok(toolNames.includes("verilog_lint"), "verilog_lint must be present");
   assert.ok(toolNames.includes("verilog_compile"), "verilog_compile must be present");
   assert.ok(toolNames.includes("verilog_simulate"), "verilog_simulate must be present");
+  assert.ok(toolNames.includes("verilog_wave_summary"), "verilog_wave_summary must be present");
+  assert.ok(toolNames.includes("verilog_coverage"), "verilog_coverage must be present");
+  assert.ok(toolNames.includes("verilog_generate_tb"), "verilog_generate_tb must be present");
   assert.ok(toolNames.includes("verilog_toolchain_info"), "verilog_toolchain_info must be present");
 
   // Validate input schemas
