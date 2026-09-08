@@ -17,7 +17,7 @@ export function createServer(runner: ToolRunner = new ToolRunner()): Server {
   const server = new Server(
     {
       name: "mcp-verilog",
-      version: "0.2.0",
+      version: "0.2.1",
     },
     {
       capabilities: {

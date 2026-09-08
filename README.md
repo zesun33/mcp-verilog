@@ -129,7 +129,7 @@ podman pull ghcr.io/zesun33/verilog:latest
 export MCP_VERILOG_IMAGE=ghcr.io/zesun33/verilog
 ```
 
-Local builds from `eda-docker-images` still work as `localhost/zesun33/verilog` (the historical default). Override anytime with `MCP_VERILOG_IMAGE`.
+`ghcr.io/zesun33/verilog` is the default (anyone can pull). Local builds still work as `localhost/zesun33/verilog` via `MCP_VERILOG_IMAGE`.
 
 - Container mount: `-v <workspace>:/workspace:Z -w /workspace`
 - Podman storage option: `--storage-opt overlay.ignore_chown_errors=true`
